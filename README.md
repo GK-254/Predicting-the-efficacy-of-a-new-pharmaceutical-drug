@@ -1,47 +1,8 @@
 # Predicting-the-efficacy-of-a-new-pharmaceutical-drug
-import pandas as pd
-from rdkit import Chem
-from rdkit.Chem import Descriptors
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import cross_val_score
-from sklearn.metrics import accuracy_score, f1_score
-from flask import Flask, request, jsonify
+In this project, we are using machine learning to develop a model that can predict the efficacy of a new pharmaceutical drug based on its chemical properties. The goal is to help researchers in the pharmaceutical industry to identify potentially effective drugs more efficiently.
 
-# Load dataset
-df = pd.read_csv('pharmaceuticals.csv')
+We are using a dataset containing information on various pharmaceutical drugs and their efficacy levels, as well as their chemical properties such as molecular weight, polarity, and solubility. We preprocess the data by checking for missing values, removing duplicates, and converting categorical variables to numerical values.
 
-# Preprocessing
-df.drop_duplicates(inplace=True)
-df.dropna(inplace=True)
-df['Efficacy'] = df['Efficacy'].map({'High': 1, 'Low': 0})
+We then engineer new features based on the chemical properties of the drugs using the RDKit library, which generates molecular descriptors that describe the chemical properties of a molecule. We use these features to train a variety of machine learning algorithms such as Random Forest, Gradient Boosting, and Neural Networks. We evaluate each model using cross-validation and select the best performing model based on its accuracy and F1 score.
 
-# Feature engineering
-df['Mol'] = df['SMILES'].apply(lambda x: Chem.MolFromSmiles(x))
-df['MolWt'] = df['Mol'].apply(lambda x: Descriptors.MolWt(x))
-df['NumAtoms'] = df['Mol'].apply(lambda x: x.GetNumAtoms())
-df['LogP'] = df['Mol'].apply(lambda x: Descriptors.MolLogP(x))
-
-# Model development
-X = df[['MolWt', 'NumAtoms', 'LogP']]
-y = df['Efficacy']
-rf = RandomForestClassifier()
-scores = cross_val_score(rf, X, y, cv=5)
-rf.fit(X, y)
-y_pred = rf.predict(X)
-accuracy = accuracy_score(y, y_pred)
-f1 = f1_score(y, y_pred)
-
-# Model deployment
-app = Flask(__name__)
-@app.route('/predict', methods=['POST'])
-def predict():
-    data = request.get_json()
-    mol = Chem.MolFromSmiles(data['smiles'])
-    molwt = Descriptors.MolWt(mol)
-    numatoms = mol.GetNumAtoms()
-    logp = Descriptors.MolLogP(mol)
-    pred = rf.predict([[molwt, numatoms, logp]])
-    return jsonify({'prediction': int(pred[0])})
-
-if __name__ == '__main__':
-    app.run()
+Finally, we deploy the best performing model as a REST API using Flask, which allows users to input the chemical properties of a new drug and receive a predicted efficacy score. This makes the model accessible to researchers and other stakeholders in the pharmaceutical industry, who can use it to make more informed decisions about which drugs to pursue further development.
